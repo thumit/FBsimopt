@@ -2,7 +2,7 @@ package fuelbreakmodel;
 
 public class Information_Variable {
 	private String var_name;
-	private int fireID, pod_ID;
+	private int break_id, fire_id;
 
 	public Information_Variable(String var_name) {
 		this.var_name = var_name;
@@ -10,13 +10,11 @@ public class Information_Variable {
 		try {
 			String first_letter_of_var_name = var_name.substring(0, 1);
 			switch (first_letter_of_var_name) {
-			case "X":
-				fireID = Integer.parseInt(term[0]);
-				pod_ID = Integer.parseInt(term[1]);
+			case "x":
+				break_id = Integer.parseInt(term[0]);
 				break;
-			case "Q":
-				break;
-			case "D":
+			case "y":
+				fire_id = Integer.parseInt(term[1]);
 				break;
 			default:
 				break;
@@ -29,11 +27,11 @@ public class Information_Variable {
 		return var_name;
 	}
 
-	public int get_fireID() {
-		return fireID;
+	public int get_break_id() {
+		return break_id;
 	}
 
-	public int get_pod_ID() {
-		return pod_ID;
+	public int get_fire_id() {
+		return fire_id;
 	}
 }
