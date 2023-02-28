@@ -23,7 +23,7 @@ public class LibraryHandle {
 	public static void addLibraryPath(String pathToAdd) throws Exception {
 		//To help load the native libraries (usually the folder contains the .dll files) of the added jars
 		
-		Field usrPathsField = Main.get_main().getClass().getDeclaredField("usr_paths");
+		Field usrPathsField = FBSMmain.get_main().getClass().getDeclaredField("usr_paths");
 		usrPathsField.setAccessible(true);
 
 		String[] paths = (String[]) usrPathsField.get(null);
@@ -47,7 +47,7 @@ public class LibraryHandle {
 	    System.setProperty("java.library.path", path);
 	 
 	    //set sys_paths to null
-	    final Field sysPathsField = Main.get_main().getClass().getDeclaredField("sys_paths");
+	    final Field sysPathsField = FBSMmain.get_main().getClass().getDeclaredField("sys_paths");
 	    sysPathsField.setAccessible(true);
 	    sysPathsField.set(null, null);
 	}

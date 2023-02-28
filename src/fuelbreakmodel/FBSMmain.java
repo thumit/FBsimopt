@@ -25,8 +25,8 @@ import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
 import ilog.cplex.IloCplex.Status;
 
-public class Main {
-	private static Main main;
+public class FBSMmain {
+	private static FBSMmain main;
 	private DecimalFormat twoDForm = new DecimalFormat("#.##");	 // Only get 2 decimal
 	private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd - HH:mm:ss");
 	private long time_start, time_end;
@@ -35,13 +35,13 @@ public class Main {
 	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				main = new Main();
+				main = new FBSMmain();
 			}
 		});
 
 	}
 	
-	public Main() {
+	public FBSMmain() {
 		EventQueue.invokeLater(new Runnable() {
 			@Override
 			public void run() {
@@ -1224,7 +1224,7 @@ public class Main {
 		});
 	}
 	
-	public static Main get_main() {
+	public static FBSMmain get_main() {
 		return main;
 	}
 	
