@@ -55,7 +55,7 @@ public class FBSMmain {
 					File solution_file = new File(input_folder + "/model_outputs/solution.sol");
 					File output_variables_file = new File(input_folder + "/model_outputs/output_01_variables.txt");
 
-					double percent_invest = 0.5;	// i.e. 10, 30, 50% total length of the break network.
+					double percent_invest = 0.1;	// i.e. 10, 30, 50% total length of the break network.
 					
 					// Read input1 --------------------------------------------------------------------------------------------
 					List<String> list = Files.readAllLines(Paths.get(input_1_file.getAbsolutePath()), StandardCharsets.UTF_8);
@@ -336,18 +336,22 @@ public class FBSMmain {
 					List<Double> c4_ublist = new ArrayList<Double>();
 					int c4_num = 0;
 					
-					// Add constraint
-					c4_indexlist.add(new ArrayList<Integer>());
-					c4_valuelist.add(new ArrayList<Double>());
-					for (int i = 0; i < number_of_breaks; i++) {
-						// Add sigma L[i]x[i]
-						c4_indexlist.get(c4_num).add(x[i] );
-						c4_valuelist.get(c4_num).add((double) break_length[i]);
-					}
-					// add bounds
-					c4_lblist.add((double) 0);			// Lower bound = 0
-					c4_ublist.add((double) B);			// Upper bound = B
-					c4_num++;
+					for (int j = 0; j < number_of_fires; j++) {
+						if (number_of_collaborated_breaks[j] == 0) {
+							// Add constraint
+							c4_indexlist.add(new ArrayList<Integer>());
+							c4_valuelist.add(new ArrayList<Double>());
+							
+							// Add y[j]
+							c4_indexlist.get(c4_num).add(y[j]);
+							c4_valuelist.get(c4_num).add((double) 1);
+							
+							// add bounds
+							c4_lblist.add((double) 0);	// Lower bound = 0
+							c4_ublist.add((double) 0);	// Upper bound = 0
+							c4_num++;
+						}
+					}	
 					
 					double[] c4_lb = Stream.of(c4_lblist.toArray(new Double[c4_lblist.size()])).mapToDouble(Double::doubleValue).toArray();
 					double[] c4_ub = Stream.of(c4_ublist.toArray(new Double[c4_ublist.size()])).mapToDouble(Double::doubleValue).toArray();		
@@ -369,6 +373,49 @@ public class FBSMmain {
 					c4_lblist = null;	
 					c4_ublist = null;
 					System.out.println("Total constraints as in the model formulation eq. (4):   " + c4_num + "             " + dateFormat.format(new Date()));
+					
+					
+					
+					// Constraints 5------------------------------------------------------
+					List<List<Integer>> c5_indexlist = new ArrayList<List<Integer>>();	
+					List<List<Double>> c5_valuelist = new ArrayList<List<Double>>();
+					List<Double> c5_lblist = new ArrayList<Double>();	
+					List<Double> c5_ublist = new ArrayList<Double>();
+					int c5_num = 0;
+					
+					// Add constraint
+					c5_indexlist.add(new ArrayList<Integer>());
+					c5_valuelist.add(new ArrayList<Double>());
+					for (int i = 0; i < number_of_breaks; i++) {
+						// Add sigma L[i]x[i]
+						c5_indexlist.get(c5_num).add(x[i] );
+						c5_valuelist.get(c5_num).add((double) break_length[i]);
+					}
+					// add bounds
+					c5_lblist.add((double) 0);			// Lower bound = 0
+					c5_ublist.add((double) B);			// Upper bound = B
+					c5_num++;
+					
+					double[] c5_lb = Stream.of(c5_lblist.toArray(new Double[c5_lblist.size()])).mapToDouble(Double::doubleValue).toArray();
+					double[] c5_ub = Stream.of(c5_ublist.toArray(new Double[c5_ublist.size()])).mapToDouble(Double::doubleValue).toArray();		
+					int[][] c5_index = new int[c5_num][];
+					double[][] c5_value = new double[c5_num][];
+				
+					for (int i = 0; i < c5_num; i++) {
+						c5_index[i] = new int[c5_indexlist.get(i).size()];
+						c5_value[i] = new double[c5_indexlist.get(i).size()];
+						for (int j = 0; j < c5_indexlist.get(i).size(); j++) {
+							c5_index[i][j] = c5_indexlist.get(i).get(j);
+							c5_value[i][j] = c5_valuelist.get(i).get(j);			
+						}
+					}	
+					
+					// Clear lists to save memory
+					c5_indexlist = null;	
+					c5_valuelist = null;
+					c5_lblist = null;	
+					c5_ublist = null;
+					System.out.println("Total constraints as in the model formulation eq. (5):   " + c5_num + "             " + dateFormat.format(new Date()));
 					time_end = System.currentTimeMillis();		// measure time after reading
 					time_reading = (double) (time_end - time_start) / 1000;
 					
@@ -401,20 +448,24 @@ public class FBSMmain {
 						lp.addRows(c2_lb, c2_ub, c2_index, c2_value); 		// Constraints 2
 						lp.addRows(c3_lb, c3_ub, c3_index, c3_value); 		// Constraints 3
 						lp.addRows(c4_lb, c4_ub, c4_index, c4_value); 		// Constraints 4
+						lp.addRows(c5_lb, c5_ub, c5_index, c5_value); 		// Constraints 4
 						
 						// Clear arrays to save memory
 						c2_lb = null;  c2_ub = null;  c2_index = null;  c2_value = null;
 						c3_lb = null;  c3_ub = null;  c3_index = null;  c3_value = null;
 						c4_lb = null;  c4_ub = null;  c4_index = null;  c4_value = null;
+						c5_lb = null;  c5_ub = null;  c5_index = null;  c5_value = null;
 						
 						// Set constraints set name: Notice THIS WILL EXTREMELY SLOW THE SOLVING PROCESS (recommend for debugging only)
 						int indexOfC2 = c2_num;
 						int indexOfC3 = indexOfC2 + c3_num;
-						int indexOfC4 = indexOfC3 + c4_num;	// Note: lp.getRanges().length = indexOfC4
+						int indexOfC4 = indexOfC3 + c4_num;
+						int indexOfC5 = indexOfC4 + c5_num;	// Note: lp.getRanges().length = indexOfC5
 						for (int i = 0; i < lp.getRanges().length; i++) {	
 							if (0 <= i && i < indexOfC2) lp.getRanges() [i].setName("S.2");
 							if (indexOfC2<=i && i<indexOfC3) lp.getRanges() [i].setName("S.3");
 							if (indexOfC3<=i && i<indexOfC4) lp.getRanges() [i].setName("S.4");
+							if (indexOfC4<=i && i<indexOfC5) lp.getRanges() [i].setName("S.5");
 						}
 						
 						cplex.addMaximize(cplex.scalProd(var, objvals));
