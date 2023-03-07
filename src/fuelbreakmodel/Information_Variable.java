@@ -31,7 +31,7 @@ public class Information_Variable {
 		return break_id;
 	}
 
-	public int get_fire_id() {
+	public int get_fire_id() {	// this is the new fire id: 0, 1, 2,...
 		return fire_id;
 	}
 }

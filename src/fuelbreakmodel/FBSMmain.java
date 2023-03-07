@@ -165,11 +165,11 @@ public class FBSMmain {
 					// MODEL SETUP --------------------------------------------------------------
 					// MODEL SETUP --------------------------------------------------------------
 					double fire_size_percentile = 1;
-					int[] sorted_smoothed_fire_size = new int[smoothed_fire_size.length];
+					double[] sorted_smoothed_fire_size = new double[smoothed_fire_size.length];
 					System.arraycopy(smoothed_fire_size, 0, sorted_smoothed_fire_size, 0, smoothed_fire_size.length);
 					Arrays.sort(sorted_smoothed_fire_size);
-			        int percentile_index = (int) Math.floor(sorted_smoothed_fire_size.length * fire_size_percentile);	// Calculate the percentile index
-			        double percentile_value = sorted_smoothed_fire_size[percentile_index];								// Calculate the percentile value
+			        int percentile_index = (int) Math.floor(sorted_smoothed_fire_size.length * fire_size_percentile) - 1;	// Calculate the percentile index
+			        double percentile_value = sorted_smoothed_fire_size[percentile_index];									// Calculate the percentile value
 			        int number_of_modeled_fires = 0;	// Note: exclude fires based on fire size percentile only
 			        double size_of_modeled_fires = 0;
 			        for (int j = 0; j < number_of_fires; j++) {
@@ -610,9 +610,10 @@ public class FBSMmain {
 								
 								for (int i = 0; i < value.length; i++) {
 									if (vname[i].startsWith("y")) {
-										int f_id = var_info_array[i].get_fire_id();
+										int new_f_id = var_info_array[i].get_fire_id();	// this is the new fire id
+										int original_f_id = fire_id[new_f_id];			// We need this so we can show it in the ArcGis map
 										fileOut.newLine();
-										fileOut.write(i + "\t" + vname[i] + "\t" + f_id + "\t" + value[i] + "\t" + slack[i]);
+										fileOut.write(i + "\t" + vname[i] + "\t" + original_f_id + "\t" + value[i] + "\t" + slack[i]);
 									}
 								}
 								fileOut.close();
