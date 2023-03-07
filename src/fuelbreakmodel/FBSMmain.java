@@ -14,6 +14,7 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -51,11 +52,7 @@ public class FBSMmain {
 					File input_2_file = new File(input_folder + "/model_inputs/aggregated_fire_input_1_general.csv");
 					File input_3_file = new File(input_folder + "/model_inputs/aggregated_fire_input_2_blocked_breaks_ids.csv");
 					File input_4_file = new File(input_folder + "/model_inputs/aggregated_fire_input_6_max_flame_lengths.csv");
-					File problem_file = new File(input_folder + "/model_outputs/problem.lp");
-					File solution_file = new File(input_folder + "/model_outputs/solution.sol");
-					File output_variables_file = new File(input_folder + "/model_outputs/output_01_variables.txt");
 
-					double percent_invest = 0.1;	// i.e. 10, 30, 50% total length of the break network.
 					
 					// Read input1 --------------------------------------------------------------------------------------------
 					List<String> list = Files.readAllLines(Paths.get(input_1_file.getAbsolutePath()), StandardCharsets.UTF_8);
@@ -82,7 +79,6 @@ public class FBSMmain {
 						break_length[i] = (int) data[i][8];
 						total_network_length = total_network_length + break_length[i];
 					}
-					double B = percent_invest * total_network_length;
 
 					
 					// Read input2 --------------------------------------------------------------------------------------------
@@ -108,13 +104,13 @@ public class FBSMmain {
 					double[] saved_fire_area = new double[number_of_fires];
 					double[] saved_wui_area = new double[number_of_fires];
 					int[] number_of_collaborated_breaks = new int[number_of_fires];
-					for (int i = 0; i < number_of_fires; i++) {
-						new_fire_id[i] = i;
-						fire_id[i] = (int) data[i][0];
-						smoothed_fire_size[i] = data[i][4];
-						saved_fire_area[i] = data[i][5];
-						saved_wui_area[i] = data[i][8];
-						number_of_collaborated_breaks[i] = (int) data[i][10];
+					for (int j = 0; j < number_of_fires; j++) {
+						new_fire_id[j] = j;
+						fire_id[j] = (int) data[j][0];
+						smoothed_fire_size[j] = data[j][4];
+						saved_fire_area[j] = data[j][5];
+						saved_wui_area[j] = data[j][8];
+						number_of_collaborated_breaks[j] = (int) data[j][10];
 					}
 					
 				
@@ -126,13 +122,13 @@ public class FBSMmain {
 					
 					// For each fire, there is a list of breaks that jointly work together to block/stop the fire 
 					List<Integer>[] collaborated_breaks_list = new ArrayList[number_of_fires];
-					for (int i = 0; i < number_of_fires; i++) {	
-						collaborated_breaks_list[i] = new ArrayList<Integer>();
+					for (int j = 0; j < number_of_fires; j++) {	
+						collaborated_breaks_list[j] = new ArrayList<Integer>();
 					}
-					for (int i = 0; i < total_rows; i++) {
-						String[] rowValue = a[i].split(",");
+					for (int j = 0; j < total_rows; j++) {
+						String[] rowValue = a[j].split(",");
 						for (String s : rowValue) {
-							if (!s.equals("")) collaborated_breaks_list[i].add(Integer.valueOf(s));
+							if (!s.equals("")) collaborated_breaks_list[j].add(Integer.valueOf(s));
 						}
 					}
 					
@@ -144,15 +140,65 @@ public class FBSMmain {
 
 					// For each fire, there is a list of of max_flame_length associated with the breaks that jointly work together to block/stop the fire 
 					List<Double>[] collaborated_flamelengths_list = new ArrayList[number_of_fires];
-					for (int i = 0; i < number_of_fires; i++) {	
-						collaborated_flamelengths_list[i] = new ArrayList<Double>();
+					double[] max_flamelength_at_breaks = new double[number_of_fires];
+					for (int j = 0; j < number_of_fires; j++) {	
+						collaborated_flamelengths_list[j] = new ArrayList<Double>();
+						max_flamelength_at_breaks[j] = 0;
 					}
-					for (int i = 0; i < total_rows; i++) {
-						String[] rowValue = a[i].split(",");
+					for (int j = 0; j < total_rows; j++) {
+						String[] rowValue = a[j].split(",");
+						double max_fl = 0;
 						for (String s : rowValue) {
-							if (!s.equals("")) collaborated_flamelengths_list[i].add(Double.valueOf(s));
+							if (!s.equals("")) {
+								double fl_value = Double.valueOf(s);
+								collaborated_flamelengths_list[j].add(fl_value);
+								if (max_fl < fl_value) max_fl = fl_value;
+							}
+						}
+						max_flamelength_at_breaks[j] = max_fl;
+					}
+					
+					
+					
+					
+					// MODEL SETUP --------------------------------------------------------------
+					// MODEL SETUP --------------------------------------------------------------
+					// MODEL SETUP --------------------------------------------------------------
+					double fire_size_percentile = 1;
+					int[] sorted_smoothed_fire_size = new int[smoothed_fire_size.length];
+					System.arraycopy(smoothed_fire_size, 0, sorted_smoothed_fire_size, 0, smoothed_fire_size.length);
+					Arrays.sort(sorted_smoothed_fire_size);
+			        int percentile_index = (int) Math.floor(sorted_smoothed_fire_size.length * fire_size_percentile);	// Calculate the percentile index
+			        double percentile_value = sorted_smoothed_fire_size[percentile_index];								// Calculate the percentile value
+			        int number_of_modeled_fires = 0;	// Note: exclude fires based on fire size percentile only
+			        double size_of_modeled_fires = 0;
+			        for (int j = 0; j < number_of_fires; j++) {
+						if (smoothed_fire_size[j] <= percentile_value) {
+							number_of_modeled_fires = number_of_modeled_fires + 1;
+							size_of_modeled_fires = size_of_modeled_fires + smoothed_fire_size[j];
 						}
 					}
+			        
+					double percent_invest = 0.5;	// i.e. 10, 30, 50% total length of the break network.
+					double B = percent_invest * total_network_length;
+					double escape_flame_length = Double.MAX_VALUE;	// i.e. 4ft, 8ft, ... if flame length the break can handle to contain fire. Fire exceeding this FL at the break will escape.
+					boolean[] fires_can_be_contained = new boolean[number_of_fires];	// Get the set of fires to be included into modeling
+					
+					for (int j = 0; j < number_of_fires; j++) {
+						if (number_of_collaborated_breaks[j] > 0 && max_flamelength_at_breaks[j] <= escape_flame_length && smoothed_fire_size[j] <= percentile_value) {
+							fires_can_be_contained[j] = true;
+						} else {
+							fires_can_be_contained[j] = false;
+						}
+					}
+					
+					String escape_info = (escape_flame_length < Double.MAX_VALUE) ? String.valueOf(escape_flame_length) : "inf";
+					String setup_info = String.join("_", String.valueOf(fire_size_percentile), String.valueOf(percent_invest), escape_info);
+					File problem_file = new File(input_folder + "/model_outputs/problem_" + setup_info + ".lp");
+					File solution_file = new File(input_folder + "/model_outputs/solution_" + setup_info + ".sol");
+					File output_01_summary = new File(input_folder + "/model_outputs/output_01_summary_" + setup_info + ".txt");
+					File output_02_breaks = new File(input_folder + "/model_outputs/output_02_breaks_" + setup_info + ".txt");
+					File output_03_fires = new File(input_folder + "/model_outputs/output_03_fires_" + setup_info + ".txt");
 					
 					
 					
@@ -229,7 +275,7 @@ public class FBSMmain {
 					int c2_num = 0;
 					
 					for (int j = 0; j < number_of_fires; j++) {
-						if (number_of_collaborated_breaks[j] > 0) {
+						if (fires_can_be_contained[j]) {
 							// Add constraint
 							c2_indexlist.add(new ArrayList<Integer>());
 							c2_valuelist.add(new ArrayList<Double>());
@@ -283,7 +329,7 @@ public class FBSMmain {
 					int c3_num = 0;
 					
 					for (int j = 0; j < number_of_fires; j++) {
-						if (number_of_collaborated_breaks[j] > 0) {
+						if (fires_can_be_contained[j]) {
 							// Add constraint
 							c3_indexlist.add(new ArrayList<Integer>());
 							c3_valuelist.add(new ArrayList<Double>());
@@ -337,7 +383,7 @@ public class FBSMmain {
 					int c4_num = 0;
 					
 					for (int j = 0; j < number_of_fires; j++) {
-						if (number_of_collaborated_breaks[j] == 0) {
+						if (!fires_can_be_contained[j]) {
 							// Add constraint
 							c4_indexlist.add(new ArrayList<Integer>());
 							c4_valuelist.add(new ArrayList<Double>());
@@ -498,29 +544,82 @@ public class FBSMmain {
 							// WRITE SOLUTION --------------------------------------------------------------
 							// WRITE SOLUTION --------------------------------------------------------------
 							// WRITE SOLUTION --------------------------------------------------------------
-							// output_01_variables
-							output_variables_file.delete();
-							try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(output_variables_file))) {
-								String file_header = String.join("\t", "var_id", "var_name", "var_value", "var_slack");
+							// output_01_summary
+							output_01_summary.delete();
+							try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(output_01_summary))) {
+								String file_header = String.join("\t", "fire_size_percentile", "breaks_percent_limit", "escape_flame_length",
+										"size_of_modeled_fires", "number_of_modeled_fires", "breaks_length_limit",
+										"cplex_status", "cplex_algorithm", "cplex_iteration", "solution_time",
+										"objective", "number_of_contained_fires", "number_of_invested_breaks", "length_of_invested_breaks");
+								fileOut.write(file_header);
+								
+								int number_of_invested_breaks= 0;
+								double length_of_invested_breaks = 0;
+								for (int i = 0; i < value.length; i++) {
+									if (vname[i].startsWith("x") && value[i] == 1) {
+										int br_id = var_info_array[i].get_break_id();
+										length_of_invested_breaks = length_of_invested_breaks + value[i] * break_length[br_id];
+										number_of_invested_breaks = number_of_invested_breaks + 1;
+									}
+								}
+								
+								int number_of_contained_fires = 0;
+								for (int i = 0; i < value.length; i++) {
+									if (vname[i].startsWith("y") && value[i] == 1) {
+										number_of_contained_fires = number_of_contained_fires + 1;
+									}
+								}
+								
+								fileOut.newLine();
+								fileOut.write(fire_size_percentile + "\t" + percent_invest + "\t" + escape_flame_length + "\t" +
+										size_of_modeled_fires + "\t" + number_of_modeled_fires + "\t" + B + "\t" +
+										cplex_status + "\t" + cplex_algorithm + "\t" + cplex_iteration + "\t" + time_solving + "\t" + 
+										objective_value + "\t" + number_of_contained_fires + "\t" + number_of_invested_breaks + "\t" + length_of_invested_breaks);
+								fileOut.close();
+							} catch (IOException e) {
+								System.err.println("FileWriter(output_01_summary) error - "	+ e.getClass().getName() + ": " + e.getMessage());
+							}
+							output_01_summary.createNewFile();
+							
+							
+							// output_02_breaks
+							output_02_breaks.delete();
+							try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(output_02_breaks))) {
+								String file_header = String.join("\t", "var_id", "var_name", "break_id", "var_value", "var_slack");
 								fileOut.write(file_header);
 								
 								for (int i = 0; i < value.length; i++) {
-									if (value[i] != 0) {	// only write variable that is not zero
+									if (vname[i].startsWith("x")) {
+										int br_id = var_info_array[i].get_break_id();
 										fileOut.newLine();
-										fileOut.write(i + "\t" + vname[i] + "\t" + value[i] + "\t" + slack[i]);
+										fileOut.write(i + "\t" + vname[i] + "\t" + br_id + "\t" + value[i] + "\t" + slack[i]);
 									}
 								}
 								fileOut.close();
 							} catch (IOException e) {
-								System.err.println("FileWriter(output_variables_file) error - "	+ e.getClass().getName() + ": " + e.getMessage());
+								System.err.println("FileWriter(output_02_breaks) error - "	+ e.getClass().getName() + ": " + e.getMessage());
 							}
-							output_variables_file.createNewFile();
+							output_02_breaks.createNewFile();
 							
 							
-							
-							
-							
-							
+							// output_03_fires
+							output_03_fires.delete();
+							try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(output_03_fires))) {
+								String file_header = String.join("\t", "var_id", "var_name", "fire_id", "var_value", "var_slack");
+								fileOut.write(file_header);
+								
+								for (int i = 0; i < value.length; i++) {
+									if (vname[i].startsWith("y")) {
+										int f_id = var_info_array[i].get_fire_id();
+										fileOut.newLine();
+										fileOut.write(i + "\t" + vname[i] + "\t" + f_id + "\t" + value[i] + "\t" + slack[i]);
+									}
+								}
+								fileOut.close();
+							} catch (IOException e) {
+								System.err.println("FileWriter(output_03_fires) error - "	+ e.getClass().getName() + ": " + e.getMessage());
+							}
+							output_03_fires.createNewFile();
 							
 							
 						}
