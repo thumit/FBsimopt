@@ -14,7 +14,7 @@ public class Information_Variable {
 				break_id = Integer.parseInt(term[0]);
 				break;
 			case "y":
-				fire_id = Integer.parseInt(term[1]);
+				fire_id = Integer.parseInt(term[0]);
 				break;
 			default:
 				break;
