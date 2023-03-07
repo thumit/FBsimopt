@@ -234,11 +234,7 @@ public class FBSMmain {
 						String var_name = "y_" + j;
 						Information_Variable var_info = new Information_Variable(var_name);
 						var_info_list.add(var_info);
-						if (fires_can_be_contained[j]) {
-							objlist.add((double) saved_fire_area[j]);
-						} else {
-							objlist.add((double) 0);
-						}
+						objlist.add((double) saved_fire_area[j]);
 						vnamelist.add(var_name);
 						vlblist.add((double) 0);
 						vublist.add((double) 1);
