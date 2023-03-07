@@ -148,6 +148,7 @@ public class FBSMmain {
 					List<Double> percent_list = Arrays.asList(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0);	// i.e. 10, 30, 50% total length of the break network.
 					List<Double> flame_length_list = Arrays.asList(4.0, 8.0, Double.MAX_VALUE);				// i.e. 4ft, 8ft, ... if flame length the break can handle to contain fire. Fire exceeding this FL at the break will escape.
 					
+					// Solve optimization models
 					for (double fire_size_percentile : percentile_list) {
 						for (double percent_invest : percent_list) {
 							for (double escape_flame_length : flame_length_list) {
@@ -159,6 +160,10 @@ public class FBSMmain {
 							}
 						}
 					}
+					// Aggregate model results
+					Optimization_Result_Aggregation models_aggragattion = new Optimization_Result_Aggregation(percentile_list, percent_list, flame_length_list, input_folder);
+					models_aggragattion = null;
+					
 					
 				} catch (IOException e) {
 					e.printStackTrace();
