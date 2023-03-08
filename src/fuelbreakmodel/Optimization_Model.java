@@ -26,13 +26,19 @@ public class Optimization_Model {
 	private long time_start, time_end;
 	private double time_reading, time_solving, time_writing;
 	
-	public Optimization_Model(double fire_size_percentile, double percent_invest, double escape_flame_length,
+	public Optimization_Model(String value_at_risk_option, double fire_size_percentile, double percent_invest, double escape_flame_length,
 			String input_folder, int number_of_breaks, double[] break_length, double total_network_length,
-			int number_of_fires, int[] fire_id, double[] smoothed_fire_size, double[] saved_fire_area,
+			int number_of_fires, int[] fire_id, double[] smoothed_fire_size, double[] saved_fire_area, double[] wui_area, double[] saved_wui_area,
 			int[] number_of_collaborated_breaks, List<Integer>[] collaborated_breaks_list, double[] max_flamelength_at_breaks) {
 		// MODEL SETUP --------------------------------------------------------------
 		// MODEL SETUP --------------------------------------------------------------
 		// MODEL SETUP --------------------------------------------------------------
+		double[] saved_value_at_risk = null;
+		if (value_at_risk_option.equals("FIRE")) {
+			saved_value_at_risk = saved_fire_area;
+		} else { // WUI case
+			saved_value_at_risk = saved_wui_area;
+		}
 		double[] sorted_smoothed_fire_size = new double[smoothed_fire_size.length];
 		System.arraycopy(smoothed_fire_size, 0, sorted_smoothed_fire_size, 0, smoothed_fire_size.length);
 		Arrays.sort(sorted_smoothed_fire_size);
@@ -40,10 +46,12 @@ public class Optimization_Model {
 		double percentile_value = sorted_smoothed_fire_size[percentile_index];									// Calculate the percentile value
 		int number_of_modeled_fires = 0;	// Note: exclude fires based on fire size percentile only
 		double size_of_modeled_fires = 0;
+		double wuisize_of_modeled_fires = 0;
 		for (int j = 0; j < number_of_fires; j++) {
 			if (smoothed_fire_size[j] <= percentile_value) {
 				number_of_modeled_fires = number_of_modeled_fires + 1;
 				size_of_modeled_fires = size_of_modeled_fires + smoothed_fire_size[j];
+				wuisize_of_modeled_fires = wuisize_of_modeled_fires + wui_area[j];
 			}
 		}
 		
@@ -100,7 +108,7 @@ public class Optimization_Model {
 			String var_name = "y_" + j;
 			Information_Variable var_info = new Information_Variable(var_name);
 			var_info_list.add(var_info);
-			objlist.add((double) saved_fire_area[j]);
+			objlist.add((double) saved_value_at_risk[j]);
 			vnamelist.add(var_name);
 			vlblist.add((double) 0);
 			vublist.add((double) 1);
@@ -414,7 +422,7 @@ public class Optimization_Model {
 				output_01_summary.delete();
 				try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(output_01_summary))) {
 					String file_header = String.join("\t", "fire_size_percentile", "breaks_percent_limit", "escape_flame_length",
-							"size_of_modeled_fires", "number_of_modeled_fires", "breaks_length_limit",
+							"size_of_modeled_fires", "wuisize_of_modeled_fires", "number_of_modeled_fires", "breaks_length_limit",
 							"cplex_status", "cplex_algorithm", "cplex_iteration", "solution_time",
 							"objective", "number_of_contained_fires", "number_of_invested_breaks", "length_of_invested_breaks");
 					fileOut.write(file_header);
@@ -438,7 +446,7 @@ public class Optimization_Model {
 					
 					fileOut.newLine();
 					fileOut.write(fire_size_percentile + "\t" + percent_invest + "\t" + escape_flame_length + "\t" +
-							size_of_modeled_fires + "\t" + number_of_modeled_fires + "\t" + B + "\t" +
+							size_of_modeled_fires + "\t" + wuisize_of_modeled_fires+ "\t" + number_of_modeled_fires + "\t" + B + "\t" +
 							cplex_status + "\t" + cplex_algorithm + "\t" + cplex_iteration + "\t" + time_solving + "\t" + 
 							objective_value + "\t" + number_of_contained_fires + "\t" + number_of_invested_breaks + "\t" + length_of_invested_breaks);
 					fileOut.close();

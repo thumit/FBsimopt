@@ -84,6 +84,7 @@ public class FBSMmain {
 					int[] new_fire_id = new int[number_of_fires]; 				// original fire id: 1, 3, 5, 9, ... We need this to associate model results
 					double[] smoothed_fire_size = new double[number_of_fires];
 					double[] saved_fire_area = new double[number_of_fires];
+					double[] wui_area = new double[number_of_fires];
 					double[] saved_wui_area = new double[number_of_fires];
 					int[] number_of_collaborated_breaks = new int[number_of_fires];
 					for (int j = 0; j < number_of_fires; j++) {
@@ -91,6 +92,7 @@ public class FBSMmain {
 						fire_id[j] = (int) data[j][0];
 						smoothed_fire_size[j] = data[j][4];
 						saved_fire_area[j] = data[j][5];
+						wui_area[j] = data[j][7];
 						saved_wui_area[j] = data[j][8];
 						number_of_collaborated_breaks[j] = (int) data[j][10];
 					}
@@ -152,9 +154,9 @@ public class FBSMmain {
 					for (double fire_size_percentile : percentile_list) {
 						for (double percent_invest : percent_list) {
 							for (double escape_flame_length : flame_length_list) {
-								Optimization_Model model = new Optimization_Model(fire_size_percentile, percent_invest, escape_flame_length,
+								Optimization_Model model = new Optimization_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
 										input_folder, number_of_breaks, break_length, total_network_length,
-										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area,
+										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
 										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
 								model = null;
 							}
