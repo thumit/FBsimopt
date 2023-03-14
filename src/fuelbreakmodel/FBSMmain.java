@@ -201,9 +201,9 @@ public class FBSMmain {
 					for (int i = 0; i < percentile_list.size(); i++) {
 						double fire_size_percentile = percentile_list.get(i);
 						for (int j = 0; j < percent_list.size(); j++) {
-							double percent_invest = percent_list.get(i);
+							double percent_invest = percent_list.get(j);
 							for (int k = 0; k < flame_length_list.size(); k++) {
-								double escape_flame_length = flame_length_list.get(i);
+								double escape_flame_length = flame_length_list.get(k);
 								Random_Model model = new Random_Model("FIRE", fire_size_percentile, percent_invest, escape_flame_length,
 										input_folder, number_of_breaks, break_length, total_network_length,
 										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
@@ -219,7 +219,6 @@ public class FBSMmain {
 								average_length_of_invested_breaks[i][j][k] = model.get_average_length_of_invested_breaks();
 								average_time_solving[i][j][k] = model.get_average_time_solving();
 							}
-							System.out.println(percent_invest);
 						}
 					}
 					
@@ -236,10 +235,9 @@ public class FBSMmain {
 						for (int i = 0; i < percentile_list.size(); i++) {
 							double fire_size_percentile = percentile_list.get(i);
 							for (int j = 0; j < percent_list.size(); j++) {
-								double percent_invest = percent_list.get(i);
+								double percent_invest = percent_list.get(j);
 								for (int k = 0; k < flame_length_list.size(); k++) {
-									double escape_flame_length = flame_length_list.get(i);
-									
+									double escape_flame_length = flame_length_list.get(k);
 									fileOut.newLine();
 									fileOut.write(fire_size_percentile + "\t" + percent_invest + "\t" + escape_flame_length + "\t" +
 											size_of_modeled_fires + "\t" + wuisize_of_modeled_fires + "\t" + number_of_modeled_fires + "\t" + B + "\t" +
@@ -247,7 +245,6 @@ public class FBSMmain {
 											average_objective_value[i][j][k] + "\t" + average_number_of_contained_fires[i][j][k] + "\t" + average_number_of_invested_breaks[i][j][k] + "\t" + average_length_of_invested_breaks[i][j][k]);
 									
 								}
-								System.out.println(percent_invest);
 							}
 						}
 						fileOut.close();

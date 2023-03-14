@@ -37,7 +37,7 @@ public class Random_Model {
 	private int number_of_invested_breaks;
 	private double length_of_invested_breaks;
 	
-	private int number_of_runs = 50;
+	private int number_of_runs = 2;
 	
 	private double[] all_objective_value = new double[number_of_runs];
 	private int[] all_number_of_contained_fires = new int[number_of_runs];
@@ -454,8 +454,8 @@ public class Random_Model {
 					time_end = System.currentTimeMillis();		// measure time after solving
 					time_solving = (double) (time_end - time_start) / 1000;
 					
-					int number_of_invested_breaks= 0;
-					double length_of_invested_breaks = 0;
+					number_of_invested_breaks = 0;
+					length_of_invested_breaks = 0;
 					for (int i = 0; i < value.length; i++) {
 						if (vname[i].startsWith("x") && value[i] == 1) {
 							int br_id = var_info_array[i].get_break_id();
@@ -464,7 +464,7 @@ public class Random_Model {
 						}
 					}
 					
-					int number_of_contained_fires = 0;
+					number_of_contained_fires = 0;
 					for (int i = 0; i < value.length; i++) {
 						if (vname[i].startsWith("y") && value[i] == 1) {
 							number_of_contained_fires = number_of_contained_fires + 1;
