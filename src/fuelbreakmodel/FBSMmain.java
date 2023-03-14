@@ -1,7 +1,9 @@
 package fuelbreakmodel;
 
 import java.awt.EventQueue;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -150,23 +152,109 @@ public class FBSMmain {
 					List<Double> percent_list = Arrays.asList(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0);	// i.e. 10, 30, 50% total length of the break network.
 					List<Double> flame_length_list = Arrays.asList(4.0, 8.0, Double.MAX_VALUE);				// i.e. 4ft, 8ft, ... if flame length the break can handle to contain fire. Fire exceeding this FL at the break will escape.
 					
-					// Solve optimization models
-					for (double fire_size_percentile : percentile_list) {
-						for (double percent_invest : percent_list) {
-							for (double escape_flame_length : flame_length_list) {
-								Optimization_Model model = new Optimization_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
+					// SOLVE OPTIMIZATION MODEL --------------------------------------------------------------
+					// SOLVE OPTIMIZATION MODEL --------------------------------------------------------------
+					// SOLVE OPTIMIZATION MODEL --------------------------------------------------------------
+//					for (double fire_size_percentile : percentile_list) {
+//						for (double percent_invest : percent_list) {
+//							for (double escape_flame_length : flame_length_list) {
+//								Optimization_Model model = new Optimization_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
+//										input_folder, number_of_breaks, break_length, total_network_length,
+//										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
+//										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
+//								model = null;
+//							}
+//						}
+//					}
+//					// Aggregate model results
+//					Optimization_Result_Aggregation models_aggragattion = new Optimization_Result_Aggregation(percentile_list, percent_list, flame_length_list, input_folder);
+//					models_aggragattion = null;
+					
+					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
+					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
+					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
+					double size_of_modeled_fires = 0;		// same for every random run
+					double wuisize_of_modeled_fires = 0;	// same for every random run
+					int number_of_modeled_fires = 0;		// same for every random run
+					double B = 0;							// same for every random run
+					double[][][] average_objective_value = new double[percentile_list.size()][][];
+					int[][][] average_number_of_contained_fires = new int[percentile_list.size()][][];
+					int[][][] average_number_of_invested_breaks = new int[percentile_list.size()][][];
+					double[][][] average_length_of_invested_breaks = new double[percentile_list.size()][][];
+					double[][][] average_time_solving = new double[percentile_list.size()][][];
+
+					for (int i = 0; i < percentile_list.size(); i++) {
+						average_objective_value[i] = new double[percent_list.size()][];
+						average_number_of_contained_fires[i] = new int[percent_list.size()][];
+						average_number_of_invested_breaks[i] = new int[percent_list.size()][];
+						average_length_of_invested_breaks[i] = new double[percent_list.size()][];
+						average_time_solving[i] = new double[percent_list.size()][];
+						for (int j = 0; j < percent_list.size(); j++) {
+							average_objective_value[i][j] = new double[flame_length_list.size()];
+							average_number_of_contained_fires[i][j] = new int[flame_length_list.size()];
+							average_number_of_invested_breaks[i][j] = new int[flame_length_list.size()];
+							average_length_of_invested_breaks[i][j] = new double[flame_length_list.size()];
+							average_time_solving[i][j] = new double[flame_length_list.size()];
+						}
+					}
+					
+					for (int i = 0; i < percentile_list.size(); i++) {
+						double fire_size_percentile = percentile_list.get(i);
+						for (int j = 0; j < percent_list.size(); j++) {
+							double percent_invest = percent_list.get(i);
+							for (int k = 0; k < flame_length_list.size(); k++) {
+								double escape_flame_length = flame_length_list.get(i);
+								Random_Model model = new Random_Model("FIRE", fire_size_percentile, percent_invest, escape_flame_length,
 										input_folder, number_of_breaks, break_length, total_network_length,
 										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
 										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
-								model = null;
+								
+								size_of_modeled_fires = model.get_size_of_modeled_fires();
+								wuisize_of_modeled_fires = model.get_wuisize_of_modeled_fires();
+								number_of_modeled_fires = model.get_number_of_modeled_fires();
+								B = model.get_B();
+								average_objective_value[i][j][k] = model.get_average_objective_value();
+								average_number_of_contained_fires[i][j][k] = model.get_average_number_of_contained_fires();
+								average_number_of_invested_breaks[i][j][k] = model.get_average_number_of_invested_breaks();
+								average_length_of_invested_breaks[i][j][k] = model.get_average_length_of_invested_breaks();
+								average_time_solving[i][j][k] = model.get_average_time_solving();
 							}
+							System.out.println(percent_invest);
 						}
 					}
-					// Aggregate model results
-					Optimization_Result_Aggregation models_aggragattion = new Optimization_Result_Aggregation(percentile_list, percent_list, flame_length_list, input_folder);
-					models_aggragattion = null;
 					
-					
+					// Write summary for random selection models
+					File random_summary = new File(input_folder + "/model_outputs/output_random_selection_summary.txt");
+					random_summary.delete();
+					try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(random_summary))) {
+						String file_header = String.join("\t", "fire_size_percentile", "breaks_percent_limit", "escape_flame_length",
+								"size_of_modeled_fires", "wuisize_of_modeled_fires", "number_of_modeled_fires", "breaks_length_limit",
+								"average_solution_time",
+								"average_objective", "average_number_of_contained_fires", "average_number_of_invested_breaks", "average_length_of_invested_breaks");
+						fileOut.write(file_header);
+						
+						for (int i = 0; i < percentile_list.size(); i++) {
+							double fire_size_percentile = percentile_list.get(i);
+							for (int j = 0; j < percent_list.size(); j++) {
+								double percent_invest = percent_list.get(i);
+								for (int k = 0; k < flame_length_list.size(); k++) {
+									double escape_flame_length = flame_length_list.get(i);
+									
+									fileOut.newLine();
+									fileOut.write(fire_size_percentile + "\t" + percent_invest + "\t" + escape_flame_length + "\t" +
+											size_of_modeled_fires + "\t" + wuisize_of_modeled_fires + "\t" + number_of_modeled_fires + "\t" + B + "\t" +
+											average_time_solving[i][j][k] + "\t" + 
+											average_objective_value[i][j][k] + "\t" + average_number_of_contained_fires[i][j][k] + "\t" + average_number_of_invested_breaks[i][j][k] + "\t" + average_length_of_invested_breaks[i][j][k]);
+									
+								}
+								System.out.println(percent_invest);
+							}
+						}
+						fileOut.close();
+					} catch (IOException e) {
+						System.err.println("FileWriter(random_summary) error - "	+ e.getClass().getName() + ": " + e.getMessage());
+					}
+					random_summary.createNewFile();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
