@@ -5,8 +5,11 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.stream.Stream;
@@ -17,7 +20,7 @@ import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
 import ilog.cplex.IloCplex.Status;
 
-public class Random_Model {
+public class Simulation_Model {
 	private DecimalFormat twoDForm = new DecimalFormat("#.##");	 // Only get 2 decimal
 	private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd - HH:mm:ss");
 	private long time_start, time_end;
@@ -37,7 +40,7 @@ public class Random_Model {
 	private int number_of_invested_breaks;
 	private double length_of_invested_breaks;
 	
-	private int number_of_runs = 50;
+	private int number_of_runs = 1;
 	
 	private double[] all_objective_value = new double[number_of_runs];
 	private int[] all_number_of_contained_fires = new int[number_of_runs];
@@ -51,10 +54,11 @@ public class Random_Model {
 	private double average_length_of_invested_breaks;
 	private double average_time_solving;
 	
-	public Random_Model(String value_at_risk_option, double fire_size_percentile, double percent_invest, double escape_flame_length,
+	public Simulation_Model(String value_at_risk_option, double fire_size_percentile, double percent_invest, double escape_flame_length,
 			String input_folder, int number_of_breaks, double[] break_length, double total_network_length,
 			int number_of_fires, int[] fire_id, double[] smoothed_fire_size, double[] saved_fire_area, double[] wui_area, double[] saved_wui_area,
-			int[] number_of_collaborated_breaks, List<Integer>[] collaborated_breaks_list, double[] max_flamelength_at_breaks) {
+			int[] number_of_collaborated_breaks, List<Integer>[] collaborated_breaks_list, double[] max_flamelength_at_breaks,
+			double[] fire_effectiveness, double[] wui_effectiveness) {
 		// MODEL SETUP --------------------------------------------------------------
 		// MODEL SETUP --------------------------------------------------------------
 		// MODEL SETUP --------------------------------------------------------------
@@ -64,10 +68,13 @@ public class Random_Model {
 		this.escape_flame_length = escape_flame_length;
 		
 		double[] saved_value_at_risk = null;
+		double[] effectiveness = null;
 		if (value_at_risk_option.equals("FIRE")) {
 			saved_value_at_risk = saved_fire_area;
+			effectiveness = fire_effectiveness;
 		} else { // WUI case
 			saved_value_at_risk = saved_wui_area;
+			effectiveness = wui_effectiveness;
 		}
 		double[] sorted_smoothed_fire_size = new double[smoothed_fire_size.length];
 		System.arraycopy(smoothed_fire_size, 0, sorted_smoothed_fire_size, 0, smoothed_fire_size.length);
@@ -100,8 +107,9 @@ public class Random_Model {
 		
 		
 		for (int r = 0; r < number_of_runs; r++) {	// For each case, run many random models, then summarize results
-			Random_Selection random_selection = new Random_Selection(number_of_breaks, break_length, B);
-			List<Integer> random_breaks = random_selection.get_random_breaks();
+//			Random_Selection selection_method = new Random_Selection(number_of_breaks, break_length, B);
+			Toprank_Selection selection_method = new Toprank_Selection(number_of_breaks, break_length, B, effectiveness);
+			List<Integer> selected_breaks = selection_method.get_selected_breaks();
 			// DEFINITIONS --------------------------------------------------------------
 			// DEFINITIONS --------------------------------------------------------------
 			// DEFINITIONS --------------------------------------------------------------
@@ -329,7 +337,7 @@ public class Random_Model {
 			int c5_num = 0;
 			
 			for (int i = 0; i < number_of_breaks; i++) {
-				if (random_breaks.contains(i)) {
+				if (selected_breaks.contains(i)) {
 					// Add constraint
 					c5_indexlist.add(new ArrayList<Integer>());
 					c5_valuelist.add(new ArrayList<Double>());
@@ -596,8 +604,57 @@ public class Random_Model {
 	        // System.out.println("Sum vs Budget vs number of seleced breaks: " + current_sum + " " + B + " " + selected_breaks.size());
 	    }
 	    
-	    public List<Integer> get_random_breaks() {
+	    public List<Integer> get_selected_breaks() {
 	    	return random_breaks;
 	    }
-	} 
+	}    
+	    
+	public class Toprank_Selection {
+		private List<Integer> toprank_breaks = new ArrayList<Integer>();
+	    public Toprank_Selection(int number_of_breaks, double[] break_length, double B, double[] effectiveness) {	// we use effectiveness to identify rank of each break
+	    	DoubleIndexPair[] pairs = new DoubleIndexPair[number_of_breaks]; // create an array of DoubleIndexPair objects
+	        for (int i = 0; i < number_of_breaks; i++) {
+	            pairs[i] = new DoubleIndexPair(effectiveness[i], i); // initialize each DoubleIndexPair object with the value and index of the corresponding element in the original array
+	        }
+
+	        Arrays.sort(pairs, new Comparator<DoubleIndexPair>() { // sort the array of DoubleIndexPair objects based on the value of the double field
+	            @Override
+	            public int compare(DoubleIndexPair p1, DoubleIndexPair p2) {
+	                return Double.compare(p2.value, p1.value);
+	            }
+	        });
+	    	
+	        double[] sorted_effectiveness = new double[number_of_breaks]; // create a new array to store the sorted values
+	        Map<Integer, Integer> indexMap = new HashMap<Integer, Integer>(); // create a map to store the original index of each element in the sorted array
+	        for (int i = 0; i < pairs.length; i++) {
+	        	sorted_effectiveness[i] = pairs[i].value; 	// copy the sorted values to the new array
+	            indexMap.put(pairs[i].index, i); 			// store the original index of each element in the sorted array
+	        }
+	    	
+	    	// Add original break id until meet budget (or not exceeding the budget)
+			int current_sum = 0;
+	        for (int i = 0; i < number_of_breaks; i++) {
+	        	int selected_break_id = indexMap.get(i);
+	        	double value = break_length[selected_break_id]; 	// get the length of the selected break
+	            if (current_sum + value <= B && value > 0) { 		// check if the selected break can be added without exceeding the target B (value > 0 means we will exclude the 77 breaks that do not contribute to any fire containment)
+	            	toprank_breaks.add(selected_break_id); 			// add the selected break to the list
+	                current_sum += value; 							// update the current sum
+	            }
+	    	}
+	    }
+	    
+	    public List<Integer> get_selected_breaks() {
+	    	return toprank_breaks;
+	    }
+	}
+	
+	class DoubleIndexPair {
+	    public double value;
+	    public int index;
+
+	    public DoubleIndexPair(double value, int index) {
+	        this.value = value;
+	        this.index = index;
+	    }
+	}
 }

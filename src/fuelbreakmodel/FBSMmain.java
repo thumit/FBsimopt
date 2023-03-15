@@ -54,14 +54,18 @@ public class FBSMmain {
 						}
 					}
 					
-					int number_of_breaks = total_rows;						// total number of breaks
-					int[] break_id = new int[number_of_breaks]; 			// break id
-					double[] break_length = new double[number_of_breaks]; 	// break length
+					int number_of_breaks = total_rows;							// total number of breaks
+					int[] break_id = new int[number_of_breaks]; 				// break id
+					double[] break_length = new double[number_of_breaks]; 		// break length
+					double[] fire_effectiveness = new double[number_of_breaks]; // total saved fire area / break full length
+					double[] wui_effectiveness = new double[number_of_breaks]; 	// total saved wui area / break full length
 					double total_network_length = 0;
 					for (int i = 0; i < number_of_breaks; i++) {
 						break_id[i] = (int) data[i][0];
 						break_length[i] = (int) data[i][8];
 						total_network_length = total_network_length + break_length[i];
+						fire_effectiveness[i] = ((double) data[i][3]) / break_length[i];
+						wui_effectiveness[i] = ((double) data[i][6]) / break_length[i];
 					}
 
 					
@@ -173,6 +177,9 @@ public class FBSMmain {
 					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
 					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
 					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
+					// NOTE: the below code is use for both top-rank model and random model. We will need to change 2 places in the "Simulation_Model" class:
+					//			1. number_of_runs = 1 for top-rank and = 50 for random)
+					//			2. Disable either of the line: Random_Selection selection_method = ...		or 		Toprank_Selection selection_method = ...
 					double size_of_modeled_fires = 0;		// same for every random run
 					double wuisize_of_modeled_fires = 0;	// same for every random run
 					int number_of_modeled_fires = 0;		// same for every random run
@@ -204,10 +211,11 @@ public class FBSMmain {
 							double percent_invest = percent_list.get(j);
 							for (int k = 0; k < flame_length_list.size(); k++) {
 								double escape_flame_length = flame_length_list.get(k);
-								Random_Model model = new Random_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
+								Simulation_Model model = new Simulation_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
 										input_folder, number_of_breaks, break_length, total_network_length,
 										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
-										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
+										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks,
+										 fire_effectiveness, wui_effectiveness);
 								
 								size_of_modeled_fires = model.get_size_of_modeled_fires();
 								wuisize_of_modeled_fires = model.get_wuisize_of_modeled_fires();
@@ -224,7 +232,7 @@ public class FBSMmain {
 					}
 					
 					// Write summary for random selection models
-					File random_summary = new File(input_folder + "/model_outputs/output_random_selection_summary.txt");
+					File random_summary = new File(input_folder + "/model_outputs/output_simulation_summary.txt");
 					random_summary.delete();
 					try (BufferedWriter fileOut = new BufferedWriter(new FileWriter(random_summary))) {
 						String file_header = String.join("\t", "fire_size_percentile", "breaks_percent_limit", "escape_flame_length",
@@ -250,7 +258,7 @@ public class FBSMmain {
 						}
 						fileOut.close();
 					} catch (IOException e) {
-						System.err.println("FileWriter(random_summary) error - "	+ e.getClass().getName() + ": " + e.getMessage());
+						System.err.println("FileWriter(simulation_summary) error - "	+ e.getClass().getName() + ": " + e.getMessage());
 					}
 					random_summary.createNewFile();
 				} catch (IOException e) {
