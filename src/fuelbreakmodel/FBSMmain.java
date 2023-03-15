@@ -204,7 +204,7 @@ public class FBSMmain {
 							double percent_invest = percent_list.get(j);
 							for (int k = 0; k < flame_length_list.size(); k++) {
 								double escape_flame_length = flame_length_list.get(k);
-								Random_Model model = new Random_Model("FIRE", fire_size_percentile, percent_invest, escape_flame_length,
+								Random_Model model = new Random_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
 										input_folder, number_of_breaks, break_length, total_network_length,
 										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
 										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
@@ -218,6 +218,7 @@ public class FBSMmain {
 								average_number_of_invested_breaks[i][j][k] = model.get_average_number_of_invested_breaks();
 								average_length_of_invested_breaks[i][j][k] = model.get_average_length_of_invested_breaks();
 								average_time_solving[i][j][k] = model.get_average_time_solving();
+								System.out.println(fire_size_percentile + " " + percent_invest + " " + escape_flame_length + "-----------------------50 runs done------------------------------------");
 							}
 						}
 					}

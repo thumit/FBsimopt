@@ -37,7 +37,7 @@ public class Random_Model {
 	private int number_of_invested_breaks;
 	private double length_of_invested_breaks;
 	
-	private int number_of_runs = 2;
+	private int number_of_runs = 50;
 	
 	private double[] all_objective_value = new double[number_of_runs];
 	private int[] all_number_of_contained_fires = new int[number_of_runs];
