@@ -57,15 +57,15 @@ public class FBSMmain {
 					int number_of_breaks = total_rows;							// total number of breaks
 					int[] break_id = new int[number_of_breaks]; 				// break id
 					double[] break_length = new double[number_of_breaks]; 		// break length
-					double[] fire_effectiveness = new double[number_of_breaks]; // total saved fire area / break full length
-					double[] wui_effectiveness = new double[number_of_breaks]; 	// total saved wui area / break full length
+					double[] fire_effectiveness_sim1 = new double[number_of_breaks]; 	// total saved fire area / break full length
+					double[] wui_effectiveness_sim1 = new double[number_of_breaks]; 	// total saved wui area / break full length
 					double total_network_length = 0;
 					for (int i = 0; i < number_of_breaks; i++) {
 						break_id[i] = (int) data[i][0];
 						break_length[i] = (int) data[i][8];
 						total_network_length = total_network_length + break_length[i];
-						fire_effectiveness[i] = ((double) data[i][3]) / break_length[i];
-						wui_effectiveness[i] = ((double) data[i][6]) / break_length[i];
+						fire_effectiveness_sim1[i] = ((double) data[i][3]) / break_length[i];
+						wui_effectiveness_sim1[i] = ((double) data[i][6]) / break_length[i];
 					}
 
 					
@@ -122,6 +122,20 @@ public class FBSMmain {
 						}
 					}
 					
+					double[] fire_effectiveness_sim2 = new double[number_of_breaks]; 	// sum (saved fire area / (break full length/Mj)
+					double[] wui_effectiveness_sim2 = new double[number_of_breaks]; 	// sum (saved wui area / (break full length/Mj)
+					for (int i = 0; i < number_of_breaks; i++) {
+						fire_effectiveness_sim2[i] = 0;
+						wui_effectiveness_sim2[i] = 0;
+					}
+					for (int j = 0; j < number_of_fires; j++) {
+						for (int i : collaborated_breaks_list[j]) {
+							fire_effectiveness_sim2[i] = fire_effectiveness_sim2[i] + saved_fire_area[j] / (break_length[i] * number_of_collaborated_breaks[j]);
+							wui_effectiveness_sim2[i] = wui_effectiveness_sim2[i] + saved_wui_area[j] / (break_length[i] * number_of_collaborated_breaks[j]);
+						}
+					}
+					
+					
 					// Read input4 --------------------------------------------------------------------------------------------
 					list = Files.readAllLines(Paths.get(input_4_file.getAbsolutePath()), StandardCharsets.UTF_8);
 					// list.remove(0);	// Remove the first row (header)
@@ -159,20 +173,20 @@ public class FBSMmain {
 					// SOLVE OPTIMIZATION MODEL --------------------------------------------------------------
 					// SOLVE OPTIMIZATION MODEL --------------------------------------------------------------
 					// SOLVE OPTIMIZATION MODEL --------------------------------------------------------------
-//					for (double fire_size_percentile : percentile_list) {
-//						for (double percent_invest : percent_list) {
-//							for (double escape_flame_length : flame_length_list) {
-//								Optimization_Model model = new Optimization_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
-//										input_folder, number_of_breaks, break_length, total_network_length,
-//										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
-//										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
-//								model = null;
-//							}
-//						}
-//					}
-//					// Aggregate model results
-//					Optimization_Result_Aggregation models_aggragattion = new Optimization_Result_Aggregation(percentile_list, percent_list, flame_length_list, input_folder);
-//					models_aggragattion = null;
+					for (double fire_size_percentile : percentile_list) {
+						for (double percent_invest : percent_list) {
+							for (double escape_flame_length : flame_length_list) {
+								Optimization_Model model = new Optimization_Model("WUI", fire_size_percentile, percent_invest, escape_flame_length,
+										input_folder, number_of_breaks, break_length, total_network_length,
+										number_of_fires, fire_id, smoothed_fire_size, saved_fire_area, wui_area, saved_wui_area,
+										number_of_collaborated_breaks, collaborated_breaks_list, max_flamelength_at_breaks);
+								model = null;
+							}
+						}
+					}
+					// Aggregate model results
+					Optimization_Result_Aggregation models_aggragattion = new Optimization_Result_Aggregation(percentile_list, percent_list, flame_length_list, input_folder);
+					models_aggragattion = null;
 					
 					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
 					// SOLVE RANDOM SELECTION MODEL --------------------------------------------------------------
@@ -180,6 +194,12 @@ public class FBSMmain {
 					// NOTE: the below code is use for both top-rank model and random model. We will need to change 2 places in the "Simulation_Model" class:
 					//			1. number_of_runs = 1 for top-rank and = 50 for random)
 					//			2. Disable either of the line: Random_Selection selection_method = ...		or 		Toprank_Selection selection_method = ...
+					//			3. Also activate the relevant 2 lines below
+					// double[] fire_effectiveness = fire_effectiveness_sim1;
+					// double[] wui_effectiveness = wui_effectiveness_sim1;
+					double[] fire_effectiveness = fire_effectiveness_sim2;
+					double[] wui_effectiveness = wui_effectiveness_sim2;
+					
 					double size_of_modeled_fires = 0;		// same for every random run
 					double wuisize_of_modeled_fires = 0;	// same for every random run
 					int number_of_modeled_fires = 0;		// same for every random run
