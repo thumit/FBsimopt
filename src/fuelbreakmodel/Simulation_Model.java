@@ -465,7 +465,7 @@ public class Simulation_Model {
 					number_of_invested_breaks = 0;
 					length_of_invested_breaks = 0;
 					for (int i = 0; i < value.length; i++) {
-						if (vname[i].startsWith("x") && value[i] == 1) {
+						if (vname[i].startsWith("x") && value[i] == 1) {			// This needs to fix since sometimes we can have 0.99999999 or 0.0000000001
 							int br_id = var_info_array[i].get_break_id();
 							length_of_invested_breaks = length_of_invested_breaks + value[i] * break_length[br_id];
 							number_of_invested_breaks = number_of_invested_breaks + 1;
@@ -474,7 +474,7 @@ public class Simulation_Model {
 					
 					number_of_contained_fires = 0;
 					for (int i = 0; i < value.length; i++) {
-						if (vname[i].startsWith("y") && value[i] == 1) {
+						if (vname[i].startsWith("y") && value[i] == 1) {			// This needs to fix since sometimes we can have 0.99999999 or 0.0000000001
 							number_of_contained_fires = number_of_contained_fires + 1;
 						}
 					}
